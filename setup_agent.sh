@@ -1,9 +1,12 @@
 #!/bin/bash
 
+warn=\033[33;01m
+no=\033[0m
+
 ## Install node exporter for methrics (commit it if your not need methrics)
 
 echo "[Node Exporter] : download..."
-wget https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+wget https://github.com/prometheus/node_exporter/releases/download/v1.9.1/node_exporter-1.9.1.linux-amd64.tar.gz
 echo "[Node Exporter] : successfully downloaded..."
 
 echo "[Node Exporter] : installation..."
@@ -36,24 +39,34 @@ echo "Node exporter has been setup succefully!"
 
 ## Install docker
 
-echo "[Docker] : installing..."
+echo "${warn}[Docker] : requirements...${no}"
 
 apt update
-    
-curl -sSL https://get.docker.com/ | sh
 
 apt install -y \
     git \
+    curl \
     make \
-    docker-compose
+    docker-compose \
+    ca-certificates \
+    apt-transport-https
 
-echo -e "${warn}[Mkcert]${no} ${cyan}install...${no}"
-curl -s https://api.github.com/repos/FiloSottile/mkcert/releases/latest| grep browser_download_url  | grep linux-amd64 | cut -d '"' -f 4 | wget -qi -
-mv mkcert-v*-linux-amd64 mkcert
-chmod a+x mkcert
-mv mkcert /usr/local/bin/
+echo "${warn}[Docker] : install gpg key...${no}"
 
-echo "[Docker] : add user to vagrant group..."
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+echo "${warn}[Docker] : installing...${no}"
+
+apt update && \
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+echo "${warn}[Docker] : add user to vagrant group...${no}"
 sudo usermod -aG docker vagrant
 
 docker --version
@@ -66,3 +79,18 @@ curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://a
 sudo chmod +x /usr/local/bin/docker-compose
 
 docker-compose --version
+
+## Install mkcert
+
+echo -e "${warn}[Mkcert]${no} ${cyan}install...${no}"
+curl -s https://api.github.com/repos/FiloSottile/mkcert/releases/latest| grep browser_download_url  | grep linux-amd64 | cut -d '"' -f 4 | wget -qi -
+mv mkcert-v*-linux-amd64 mkcert
+chmod a+x mkcert
+mv mkcert /usr/local/bin/
+
+## Install Java
+
+echo "${warn}[Jenkins] : install jdk...${no}"
+sudo apt install default-jdk -y
+echo "${warn}[Jenkins] : install jdk...${no}"
+java --version
